@@ -152,7 +152,11 @@ void setup() {
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     if(!request->authenticate(HTTPuser.c_str(), HTTPpass.c_str())) return request->requestAuthentication();
     settingsJSON = GetDeviceSettings();
-    request->send_P(200, "text/html", index_html);
+    //request->send_P(200, "text/html", index_html);
+    String idx = index_html;
+    String repidx = idx;
+    repidx.replace("{{OWNIP}}", WiFi.localIP().toString());
+    request->send_P(200, "text/html", repidx.c_str());
   });
 
   server.on("/bollenbakstatus", HTTP_GET, [](AsyncWebServerRequest *request){

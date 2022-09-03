@@ -23,6 +23,7 @@ String settingsJSON;
 String redirectResponse = "";
 
 const int ledAlarmPin = 32;
+const int ledWiFiDisconnected = 33;
 
 unsigned long previousMillis = 0;
 long interval = 5000; 
@@ -38,6 +39,28 @@ const char* PARAM_INPUT_SERVERIP = "SERVERIP";
 AsyncWebServer server(80);
 
 Preferences preferences;
+
+//WIFI EVENTS
+void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info){
+  Serial.println("Connected to AP successfully!");
+  digitalWrite(ledWiFiDisconnected, LOW);
+}
+
+void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info){
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
+  digitalWrite(ledWiFiDisconnected, HIGH);
+  Serial.println("Disconnected from WiFi access point");
+  Serial.print("WiFi lost connection. Reason: ");
+  Serial.println(info.disconnected.reason);
+  Serial.println("Trying to Reconnect");
+  //WiFi.begin("AndroidAP_4593", "sf0rs@dm!n");
+  WiFi.begin(STAssid.c_str(), STApasswd.c_str());
+}
 
 String GenerateDeviceName(const char *name)
 {
@@ -113,6 +136,14 @@ void setup() {
 #endif
 
   pinMode(ledAlarmPin, OUTPUT);
+  pinMode(ledWiFiDisconnected, OUTPUT);
+
+  WiFi.onEvent(WiFiStationConnected, SYSTEM_EVENT_STA_CONNECTED);
+  WiFi.onEvent(WiFiGotIP, SYSTEM_EVENT_STA_GOT_IP);
+  WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_DISCONNECTED);
+
+  //digitalWrite(ledAlarmPin, HIGH);
+  //digitalWrite(ledWiFiDisconnected, HIGH);
 
   settingsJSON = GetDeviceSettings();
   
@@ -153,7 +184,7 @@ void setup() {
 
   if (sAPssid != "" && sAPpass != "") {
     WiFi.mode(WIFI_AP_STA);
-    WiFi.softAP(sAPssid.c_str(), sAPpass.c_str());
+    WiFi.softAP(sAPssid.c_str(), sAPpass.c_str());    
 
     Serial.print("sAP IP: ");
     Serial.println(WiFi.softAPIP());
@@ -173,10 +204,16 @@ void setup() {
   Serial.println(".local");
 
   //Async Callbacks for webserver
+  
+
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
     if(!request->authenticate(HTTPuser.c_str(), HTTPpass.c_str())) return request->requestAuthentication();
     settingsJSON = GetDeviceSettings();
-    request->send_P(200, "text/html", index_html);
+    //request->send_P(200, "text/html", index_html);
+    String idx = index_html;
+    String repidx = idx;
+    repidx.replace("{{OWNIP}}", WiFi.localIP().toString());
+    request->send_P(200, "text/html", repidx.c_str());
   });
 
   server.on("/settings", HTTP_GET, [](AsyncWebServerRequest *request){    
@@ -240,7 +277,7 @@ void setup() {
   Serial.println("Server started.");
 
   if(STAssid != "REPLACE WITH YOUR SSID"){
-    WiFi.begin(STAssid.c_str(), STApasswd.c_str());
+    WiFi.begin(STAssid.c_str(), STApasswd.c_str());    
     while (WiFi.status() != WL_CONNECTED) {
       Serial.println("Connecting to WiFi..");
       delay(1000);    
@@ -252,21 +289,22 @@ void setup() {
 void loop() {  
   unsigned long currentMillis = millis();
 
-  if(currentMillis - previousMillis >= interval) {    
-    if(WiFi.status()== WL_CONNECTED ){ 
+  if(currentMillis - previousMillis >= interval) {        
       bollenBakStatus = httpGETRequest(serverNameBollenBakStatusURL);
       Serial.println("Bollenbak: " + bollenBakStatus);
       if (bollenBakStatus == "VOL"){                   
-        digitalWrite(32, LOW);      
+        digitalWrite(ledAlarmPin, LOW);      
       }
-
       if (bollenBakStatus == "LEEG"){            
-        digitalWrite(32, HIGH);
-      }    
-    else {
-      Serial.println("WiFi disconnected!");
-    }    
+        digitalWrite(ledAlarmPin, HIGH);
+      }
+    
+      if (WiFi.status() != WL_CONNECTED)  {
+        Serial.print(millis());
+        Serial.println("Reconnecting to WiFi...");
+        WiFi.disconnect();
+        WiFi.begin(STAssid.c_str(), STApasswd.c_str());
+      }
     }
-    previousMillis = currentMillis;
-  }
+  previousMillis = currentMillis;
 }

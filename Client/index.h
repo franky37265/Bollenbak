@@ -50,7 +50,8 @@ const char index_html[] PROGMEM = R"rawliteral(
 <body>
     <div class="container">
         <form method="get" action="/get">
-            <h1>Instellingen</h1>
+            <h1>Instellingen: (CLIENT)</h1>
+            <p>My ip: {{OWNIP}}</p>
             <label for="SSID">SSID</label>
             <input type="text" id="SSID" name="SSID" placeholder="SSID" required >
            
