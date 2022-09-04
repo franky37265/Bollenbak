@@ -24,6 +24,7 @@ String redirectResponse = "";
 
 const int ledAlarmPin = 32;
 const int ledWiFiDisconnected = 33;
+const int ledServerConnected = 25;
 
 unsigned long previousMillis = 0;
 long interval = 5000; 
@@ -107,10 +108,12 @@ String httpGETRequest(String serverName) {
     Serial.print("HTTP Response code: ");
     Serial.println(httpResponseCode);
     payload = http.getString();
+    digitalWrite(ledServerConnected, LOW);
   }
   else {
     Serial.print("Error code: ");
     Serial.println(httpResponseCode);
+    digitalWrite(ledServerConnected, HIGH);    
   }
   http.end();
 
@@ -137,6 +140,7 @@ void setup() {
 
   pinMode(ledAlarmPin, OUTPUT);
   pinMode(ledWiFiDisconnected, OUTPUT);
+  pinMode(ledServerConnected, OUTPUT);
 
   WiFi.onEvent(WiFiStationConnected, SYSTEM_EVENT_STA_CONNECTED);
   WiFi.onEvent(WiFiGotIP, SYSTEM_EVENT_STA_GOT_IP);
@@ -144,6 +148,7 @@ void setup() {
 
   //digitalWrite(ledAlarmPin, HIGH);
   //digitalWrite(ledWiFiDisconnected, HIGH);
+  //digitalWrite(ledServerConnected, HIGH);
 
   settingsJSON = GetDeviceSettings();
   

@@ -28,6 +28,8 @@ long interval = 5000;
 
 int bollenbakstatus = 0;
 
+const int ledWiFiDisconnected = 33;
+
 const char* PARAM_INPUT_SSID = "SSID";
 const char* PARAM_INPUT_PASSWD = "PASSWD";
 const char* PARAM_INPUT_ALMTIME = "ALMTIME";
@@ -36,6 +38,27 @@ AsyncWebServer server(80);
 
 Preferences preferences;
 
+//WIFI EVENTS
+void WiFiStationConnected(WiFiEvent_t event, WiFiEventInfo_t info){
+  Serial.println("Connected to AP successfully!");
+  digitalWrite(ledWiFiDisconnected, LOW);
+}
+
+void WiFiGotIP(WiFiEvent_t event, WiFiEventInfo_t info){
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+void WiFiStationDisconnected(WiFiEvent_t event, WiFiEventInfo_t info){
+  digitalWrite(ledWiFiDisconnected, HIGH);
+  Serial.println("Disconnected from WiFi access point");
+  Serial.print("WiFi lost connection. Reason: ");
+  Serial.println(info.disconnected.reason);
+  Serial.println("Trying to Reconnect");
+  //WiFi.begin("AndroidAP_4593", "sf0rs@dm!n");
+  WiFi.begin(STAssid.c_str(), STApasswd.c_str());
+}
 
 String GenerateDeviceName(const char *name){
   String MACAddress;  
@@ -94,7 +117,12 @@ void setup() {
   preferences.end();
 #endif
   pinMode(btnPin, INPUT);
-  
+  pinMode(ledWiFiDisconnected, OUTPUT);
+
+  WiFi.onEvent(WiFiStationConnected, SYSTEM_EVENT_STA_CONNECTED);
+  WiFi.onEvent(WiFiGotIP, SYSTEM_EVENT_STA_GOT_IP);
+  WiFi.onEvent(WiFiStationDisconnected, SYSTEM_EVENT_STA_DISCONNECTED);
+
   settingsJSON = GetDeviceSettings();
   
   DeviceName = sAPssid;
