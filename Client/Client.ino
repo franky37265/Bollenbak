@@ -305,6 +305,6 @@ void loop() {
         WiFi.disconnect();
         WiFi.begin(STAssid.c_str(), STApasswd.c_str());
       }
-    }
-  previousMillis = currentMillis;
+    previousMillis = currentMillis;
+  }
 }
